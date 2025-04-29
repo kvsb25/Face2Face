@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 3000 });
+const wss = new WebSocket.Server({ port: 3001 });
 
 const rooms = {}; // { roomId1: [socket11, socket12], roomId2: [socket21, socket22]... }
 let roomId;
@@ -45,13 +45,21 @@ wss.on('connection', (socket) => {
 
     switch (data.type) {
       case "CREATE_ROOM":
-        socket.send(JSON.stringify({ type: "CREATE_ROOM", roomId: generateRandomString() }));
+        let roomIdTemp = generateRandomString();
+        if (!rooms[roomIdTemp]) {
+          rooms[roomIdTemp] = [];
+          console.log('in CREATE_ROOM: '+ rooms[roomIdTemp]);
+        }
+        socket.send(JSON.stringify({ type: "CREATE_ROOM", roomId: roomIdTemp }));
         break;
 
       case "CHECK_ROOM":
         roomId = data.roomId;
-        if (room[roomId]) {
-          socket.send(JSON.stringify({ type: room[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL" }));
+        console.log(roomId);
+        console.log(rooms);
+        console.log(", Room details: " + rooms[roomId]);
+        if (rooms[roomId]) {
+          socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL" , roomId}));
         } else {
           socket.send(JSON.stringify({ type: "NO_ROOM" }));
         }
@@ -59,6 +67,8 @@ wss.on('connection', (socket) => {
 
       case "join-room":
         roomId = data.roomId;
+        console.log(roomId );
+        console.log(+ ", Room details: " + rooms[roomId]);
         if (!rooms[roomId]) {
           rooms[roomId] = [];
         }

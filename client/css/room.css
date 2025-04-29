@@ -1,0 +1,62 @@
+body{
+    height: 100vh;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-y: hidden;
+}
+
+.main-container{
+    height:100%;
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.room-video{
+    height: 100%;
+    width: 65%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: start;
+}
+
+.room-video video{
+    height: 45%;
+    width: 75%;
+    border: 2px solid black;
+    border-radius: 1rem;
+    margin: 25px;
+}
+
+.room-chat{
+    height: 100%;
+    width: 35%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.room-chat-sub{
+    height: 90%;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: solid 2px black;
+    border-radius: 15px;
+}
+.chat{
+    height: 80%;
+    width: 100%;
+    border-bottom: solid 2px black;
+}
+
+.message-box{
+    height: 20%;
+    width: 100%;
+}
