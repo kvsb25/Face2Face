@@ -21,27 +21,6 @@ pc.ontrack = (event) => {
   remoteVideo.srcObject = event.streams[0];
 };
 
-// Get local media (camera/mic)
-// navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-//   .then((stream) => {
-//     // Display your own video
-//     const localVideo = document.getElementById('localVideo');
-//     localVideo.srcObject = stream;
-
-//     // Add your media tracks to the peer connection
-//     stream.getTracks().forEach(track => {
-//       pc.addTrack(track, stream);
-//     });
-
-//     // Only one peer should create an offer.
-//     // Let's assume this client is the offerer:
-//     pc.createOffer()
-//       .then((offer) => pc.setLocalDescription(offer))
-//       .then(() => {
-//         ws.send(JSON.stringify({ type: "offer", offer: pc.localDescription }));
-//       });
-//   });
-
 // Handle incoming signaling messages
 ws.onmessage = async (message) => {
   const data = JSON.parse(message.data);

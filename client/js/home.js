@@ -2,12 +2,14 @@ const selector = document.querySelector.bind(document);
 const input = selector("#roomID");
 const joinBtn = selector("#joinRoom");
 const errorBox = selector(".error");
+const loading = selector(".loading");
 const createBtn = selector("#createRoom");
-const ws = new WebSocket('ws://localhost:3001');
+// const ws = new WebSocket('ws://localhost:3001');
+axios.defaults.baseURL = 'http://localhost:3000/';
 
-joinBtn.addEventListener('click', joinRoomHandler)
+joinBtn.addEventListener('click', joinRoomHandler1)
 
-createBtn.addEventListener('click', createRoomHandler);
+createBtn.addEventListener('click', createRoomHandler1);
 
 window.addEventListener('beforeunload', () => {
     ws.close();
@@ -19,9 +21,35 @@ function joinRoomHandler() {
     disableBtn(createBtn);
 }
 
+function joinRoomHandler1(){
+    disableBtn(createBtn);
+    let roomId = input.value;
+    loading.style.display = 'block';
+    axios.get(`api/room?roomId=${roomId}`)
+        .then((response)=>{
+            window.location.href = `/${response.data.roomId}`;
+        })
+        .catch((error)=>{
+            loading.style.display = 'none';
+            console.log("home.js error: "+error);
+            errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
+        })
+}
+
 function createRoomHandler() {
     ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
     disableBtn(joinBtn);
+}
+
+function createRoomHandler1() {
+    disableBtn(joinBtn);
+    axios.post(`/api/room`)
+        .then((response)=>{
+            window.location.href = `/${response.data.roomId}`;
+        })
+        .catch((error)=>{
+            errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
+        })
 }
 
 function disableBtn(btn){
@@ -31,44 +59,44 @@ function disableBtn(btn){
     }, 1500);
 }
 
-ws.onmessage = (message) => {
-    const data = JSON.parse(message.data);
-    console.log(data);
-    console.log(data.roomId);
-    console.log(typeof data.roomId);
-    if (data.type == "ROOM_FULL") {
+// ws.onmessage = (message) => {
+//     const data = JSON.parse(message.data);
+//     console.log(data);
+//     console.log(data.roomId);
+//     console.log(typeof data.roomId);
+//     if (data.type == "ROOM_FULL") {
 
-        // display error message : "Can't join room full"
-        errorBox.textContent = "Can't join, room is full";
+//         // display error message : "Can't join room full"
+//         errorBox.textContent = "Can't join, room is full";
         
-    } else if (data.type == "AVAILABLE") {
+//     } else if (data.type == "AVAILABLE") {
         
-        console.log('roomId in home.js: '+data.roomId)
-        window.location.href = `/${data.roomId}`;
+//         console.log('roomId in home.js: '+data.roomId)
+//         window.location.href = `/${data.roomId}`;
         
-    } else if (data.type == "NO_ROOM") {
+//     } else if (data.type == "NO_ROOM") {
         
-        // display error message: "No such room exists"
-        errorBox.textContent = 'no such room exists';
+//         // display error message: "No such room exists"
+//         errorBox.textContent = 'no such room exists';
         
-    } else if (data.type == "CREATE_ROOM") {
+//     } else if (data.type == "CREATE_ROOM") {
         
-        if (data.roomId !== 'no_ID') {
+//         if (data.roomId !== 'no_ID') {
 
-            // redirect to the newly created room
-            window.location.href = `/${data.roomId}`;
+//             // redirect to the newly created room
+//             window.location.href = `/${data.roomId}`;
             
-        } else {
+//         } else {
             
-            // display error message
-            errorBox.textContent = 'Some issue at the server. Try again some time later!';
-        }
-    }
-}
+//             // display error message
+//             errorBox.textContent = 'Some issue at the server. Try again some time later!';
+//         }
+//     }
+// }
 
-ws.onerror = (error) => {
-    console.error("Websocket error: " + error);
-}
+// ws.onerror = (error) => {
+//     console.error("Websocket error: " + error);
+// }
 
 // unt-shunt script 
 // const ws = new WebSocket('ws://localhost:3001');

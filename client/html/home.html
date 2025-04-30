@@ -5,14 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <!-- <link rel="stylesheet" href="/css/home.css"> -->
+    <link rel="stylesheet" href="../css/home.css">
 </head>
 
 <body>
+    <div class="loading"></div>
     <input id="roomID" type="text" pattern = "/^[a-z]{3}-[a-z]{3}-[a-z]{3}$/">
     <button id="joinRoom">Join</button>
     <button id="createRoom">Create Room</button>
     <div class="error"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="/js/home.js"></script>
 </body>
 
