@@ -1,5 +1,5 @@
 const pc = new RTCPeerConnection();
-const ws = new WebSocket('ws://localhost:3000');
+const ws = new WebSocket('ws://localhost:3001');
 // roomId from the url params
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
@@ -17,7 +17,7 @@ pc.onicecandidate = (event) => {
 
 // When a remote media track is received
 pc.ontrack = (event) => {
-  const remoteVideo = document.getElementById('remoteVideo');
+  const remoteVideo = document.getElementById('remote-video');
   remoteVideo.srcObject = event.streams[0];
 };
 
@@ -26,11 +26,11 @@ ws.onmessage = async (message) => {
   const data = JSON.parse(message.data);
 
   switch (data.type) {
-    case "join-successfull":
+    case "join-successful":
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then((stream) => {
           // Display your own video
-          const localVideo = document.getElementById('localVideo');
+          const localVideo = document.getElementById('self-video');
           localVideo.srcObject = stream;
 
           // Add your media tracks to the peer connection
@@ -72,26 +72,3 @@ ws.onmessage = async (message) => {
       console.log('Unknown message type:', data.type);
   }
 };
-
-// ws.onmessage = async (message) => {
-//   const data = JSON.parse(message.data);
-
-//   if (data.type === "offer") {
-//     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-//     const answer = await pc.createAnswer();
-//     await pc.setLocalDescription(answer);
-//     ws.send(JSON.stringify({ type: "answer", answer: pc.localDescription }));
-//   }
-
-//   else if (data.type === "answer") {
-//     await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-//   }
-
-//   else if (data.type === "ice-candidate") {
-//     try {
-//       await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-//     } catch (e) {
-//       console.error('Error adding received ice candidate', e);
-//     }
-//   }
-// };

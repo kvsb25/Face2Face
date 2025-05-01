@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 3001 });
+const {joinRoom} = require('./roomManager.js');
 
 
 const rooms = {}; // { roomId1: [socket11, socket12], roomId2: [socket21, socket22]... }
@@ -44,54 +45,56 @@ wss.on('connection', (socket) => {
   socket.on('message', (message) => {
     const data = JSON.parse(message);
     
-    if (data.type == "CREATE_ROOM2") {
-  
-      let { requestId } = data;
-      let roomIdTemp = generateRandomString();
-      if (!rooms[roomIdTemp]) {
-        rooms[roomIdTemp] = [];
-        console.log('in CREATE_ROOM: ' + rooms[roomIdTemp]);
-      }
-      socket.send(JSON.stringify({ type: "CREATE_ROOM", roomId: roomIdTemp, requestId }));
-      
-    } else if (data.type == "CHECK_ROOM2") {
-  
-      let {roomId, requestId} = data;
-      console.log("favicon?"+roomId);
-      console.log(rooms);
-      console.log(", Room details: " + rooms[roomId]);
-      if (rooms[roomId]) {
-        if(rooms[roomId].length < 2){
-          socket.send(JSON.stringify({type: "AVAILABLE", roomId, requestId}));
-        } else {
-          socket.send(JSON.stringify({type:"NO_ROOM", requestId}));
-        }
-        // socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
-      } else {
-        socket.send(JSON.stringify({ type: "NO_ROOM", requestId }));
-      }
-  
-    } else if (data.type == 'join-room') {
+    // if (data.type == "CREATE_ROOM2") {
+    //   let { requestId } = data;
+    //   let roomIdTemp = generateRandomString();
+    //   if(roomIdTemp == 'no_ID') return socket.send(JSON.stringify({type:"NO_ROOM", requestId}));
+    //   if (!rooms[`${roomIdTemp}`]) {
+    //     rooms[`${roomIdTemp}`] = [socket];
+    //     console.log('in CREATE_ROOM: ' + rooms[`${roomIdTemp}`]);
+    //   }
+    //   return socket.send(JSON.stringify({ type: "CREATE_ROOM", roomId: roomIdTemp, requestId }));
+    // } else if (data.type == "CHECK_ROOM2") {
+    //   let {roomId, requestId} = data;
+    //   console.log("favicon?"+roomId);
+    //   console.log(rooms);
+    //   console.log(", Room details: " + rooms[`${roomId}`]);
+    //   if (rooms[`${roomId}`]) {
+    //     if(rooms[`${roomId}`].length < 2){
+    //       socket.send(JSON.stringify({type: "AVAILABLE", roomId, requestId}));
+    //     } else {
+    //       socket.send(JSON.stringify({type:"NO_ROOM", requestId}));
+    //     }
+    //     // socket.send(JSON.stringify({ type: rooms[`${roomId}`].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
+    //   } else {
+    //     socket.send(JSON.stringify({ type: "NO_ROOM", requestId }));
+    //   }
+
+    // } else 
+    
+    if (data.type == 'join-room') {
       
       let {roomId} = data;
-      console.log(roomId);
-      console.log(+ ", Room details: " + rooms[roomId]);
-      if (!rooms[roomId]) {
-        rooms[roomId] = [];
-      }
-      rooms[roomId].push(socket);
+      joinRoom(roomId, socket);
+      // console.log(roomId);
+      // console.log(+ ", Room details: " + rooms[`${roomId}`]);
+      // if (!rooms[`${roomId}`]) {
+      //   // rooms[`${roomId}`] = [];
+      //   // rooms[`${}`]
+      // }
+      // rooms[`${roomId}`].push(socket);
       
-      console.log(`Client joined room: ${roomId}`);
+      // console.log(`Client joined room: ${roomId}`);
       
-      socket.roomId = roomId; // save roomId in socket object
+      // socket.roomId = roomId; // save roomId in socket object
       
-      socket.send(JSON.stringify({ type: "join-successful" }));
+      // socket.send(JSON.stringify({ type: "join-successful" }));
       
-      // If there are exactly two peers, notify the first peer to create an offer
-      if (rooms[roomId].length === 2) {
-        rooms[roomId][0].send(JSON.stringify({ type: "ready-to-offer" }));
-      }
-      
+      // // If there are exactly two peers, notify the first peer to create an offer
+      // if (rooms[`${roomId}`].length === 2) {
+      //   rooms[`${roomId}`][0].send(JSON.stringify({ type: "ready-to-offer" }));
+      // }
+
     } else if (data.type == "offer" || data.type == "answer" || data.type == "ice-candidate") {
       const room = rooms[socket.roomId];
       if (room) {
@@ -122,9 +125,9 @@ wss.on('connection', (socket) => {
   //       let requestId = data.requestId;
   //       console.log(roomId);
   //       console.log(rooms);
-  //       console.log(", Room details: " + rooms[roomId]);
-  //       if (rooms[roomId]) {
-  //         socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
+  //       console.log(", Room details: " + rooms[`${roomId}`]);
+  //       if (rooms[`${roomId}`]) {
+  //         socket.send(JSON.stringify({ type: rooms[`${roomId}`].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
   //       } else {
   //         socket.send(JSON.stringify({ type: "NO_ROOM", requestId }));
   //       }
@@ -133,9 +136,9 @@ wss.on('connection', (socket) => {
   //       roomId = data.roomId;
   //       console.log(roomId);
   //       console.log(rooms);
-  //       console.log(", Room details: " + rooms[roomId]);
-  //       if (rooms[roomId]) {
-  //         socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId }));
+  //       console.log(", Room details: " + rooms[`${roomId}`]);
+  //       if (rooms[`${roomId}`]) {
+  //         socket.send(JSON.stringify({ type: rooms[`${roomId}`].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId }));
   //       } else {
   //         socket.send(JSON.stringify({ type: "NO_ROOM" }));
   //       }
@@ -144,11 +147,11 @@ wss.on('connection', (socket) => {
   //     case "join-room":
   //       roomId = data.roomId;
   //       console.log(roomId);
-  //       console.log(+ ", Room details: " + rooms[roomId]);
-  //       if (!rooms[roomId]) {
-  //         rooms[roomId] = [];
+  //       console.log(+ ", Room details: " + rooms[`${roomId}`]);
+  //       if (!rooms[`${roomId}`]) {
+  //         rooms[`${roomId}`] = [];
   //       }
-  //       rooms[roomId].push(socket);
+  //       rooms[`${roomId}`].push(socket);
 
   //       console.log(`Client joined room: ${roomId}`);
 
@@ -157,8 +160,8 @@ wss.on('connection', (socket) => {
   //       socket.send(JSON.stringify({ type: "join-successful" }));
 
   //       // If there are exactly two peers, notify the first peer to create an offer
-  //       if (rooms[roomId].length === 2) {
-  //         rooms[roomId][0].send(JSON.stringify({ type: "ready-to-offer" }));
+  //       if (rooms[`${roomId}`].length === 2) {
+  //         rooms[`${roomId}`][0].send(JSON.stringify({ type: "ready-to-offer" }));
   //       }
   //       break;
 

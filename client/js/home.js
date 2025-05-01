@@ -11,41 +11,29 @@ joinBtn.addEventListener('click', joinRoomHandler1)
 
 createBtn.addEventListener('click', createRoomHandler1);
 
-window.addEventListener('beforeunload', () => {
-    ws.close();
-});
-
-function joinRoomHandler() {
-    let roomId = input.value;
-    ws.send(JSON.stringify({ type: 'CHECK_ROOM', roomId }));
-    disableBtn(createBtn);
-}
-
 function joinRoomHandler1(){
     disableBtn(createBtn);
     let roomId = input.value;
-    loading.style.display = 'block';
+    // loading.style.display = 'block';
+    console.log("join room handler : home.js");
     axios.get(`api/room?roomId=${roomId}`)
         .then((response)=>{
-            window.location.href = `/${response.data.roomId}`;
+            console.log("inside axios, join room handler : home.js");
+            console.log(roomId);
+            window.location.href = `/room/${response.data.roomId}`;
         })
         .catch((error)=>{
-            loading.style.display = 'none';
+            // loading.style.display = 'none';
             console.log("home.js error: "+error);
             errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
         })
-}
-
-function createRoomHandler() {
-    ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
-    disableBtn(joinBtn);
 }
 
 function createRoomHandler1() {
     disableBtn(joinBtn);
     axios.post(`/api/room`)
         .then((response)=>{
-            window.location.href = `/${response.data.roomId}`;
+            window.location.href = `/room/${response.data.roomId}`;
         })
         .catch((error)=>{
             errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
