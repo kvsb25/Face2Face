@@ -61,7 +61,12 @@ wss.on('connection', (socket) => {
       console.log(rooms);
       console.log(", Room details: " + rooms[roomId]);
       if (rooms[roomId]) {
-        socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
+        if(rooms[roomId].length < 2){
+          socket.send(JSON.stringify({type: "AVAILABLE", roomId, requestId}));
+        } else {
+          socket.send(JSON.stringify({type:"NO_ROOM", requestId}));
+        }
+        // socket.send(JSON.stringify({ type: rooms[roomId].length < 2 ? "AVAILABLE" : "ROOM_FULL", roomId, requestId }));
       } else {
         socket.send(JSON.stringify({ type: "NO_ROOM", requestId }));
       }

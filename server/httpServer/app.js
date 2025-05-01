@@ -66,6 +66,10 @@ app.post('/api/room', async (req, res) => {
     }
 })
 
+// app.route('/api/room')
+//     .get((req, res)=>{})
+//     .post((req, res)=>{})
+
 // NOTE: anyone can access this url directly by typing in the url, this is a potential issue suppose there are 2 people in the room and a third person comes using the url hack... this should be taken care of in the WSS and here also
 app.get('/:roomId', (req, res) => {
     let {roomId} = req.params;
@@ -78,6 +82,13 @@ app.get('/:roomId', (req, res) => {
         })
     // return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`));
     // return res.send("html page with the client side webRTC and websocket logic for video conferencing, chat etc.");
+})
+
+app.use((error, req, res, next)=>{
+    console.error(error.stack);
+    console.error(error);
+    // res.status(500).send('Something broke!')
+    return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/error.html`));
 })
 
 // ws to get updates from the WSS
