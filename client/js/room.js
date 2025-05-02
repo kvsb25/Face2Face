@@ -2,7 +2,12 @@ const pc = new RTCPeerConnection();
 const ws = new WebSocket('ws://localhost:3001');
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
+let userName;
 let localStream = null;
+
+const messageBox = document.querySelector('#message');
+const sendMsgBtn = document.querySelector('#send-message');
+const chatBox = document.querySelector('#chat-box');
 
 async function setupMediaAndConnection() {
   try {
@@ -82,18 +87,35 @@ ws.onmessage = async (message) => {
     switch (data.type) {
       case "join-successful":
         console.log("Successfully joined room");
-        // Media already set up before joining
         break;
 
+      // caller creates offer  
       case "ready-to-offer":
         console.log("Creating offer");
+        userName = "user1";
+
+        const dataChannel = pc.createDataChannel("myChannel");
+        dataChannel.onopen = () => console.log("Data channel open");
+        dataChannel.onmessage = (event) => console.log("Received:", event.data);
+        dataChannel.onclose = () => {}
+
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         ws.send(JSON.stringify({ type: "offer", offer: pc.localDescription }));
         break;
 
+      // callee receives offer  
       case "offer":
         console.log("Received offer");
+        userName = "user2";
+
+        pc.ondatachannel = (event) => {
+          const dataChannel = event.channel;
+          dataChannel.onopen = () => console.log("Data channel open");
+          dataChannel.onmessage = (event) => console.log("Received:", event.data);
+          dataChannel.onclose = (event) => {}
+        };
+
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
@@ -125,3 +147,21 @@ window.addEventListener('beforeunload', () => {
   pc.close();
   ws.close();
 });
+
+function sendMessageHandler(dataChannel, event){
+  const message = messageBox.textContent;
+
+  const payload = {
+    user: userName,
+    message
+  }
+
+  dataChannel.send(JSON.stringify(payload));
+}
+
+function receiveMessageHandler(user, message){
+  // create html element with #chat
+  // add innerHtml
+}
+
+// add eventlisteners to sendMsgBtn and messageBox
