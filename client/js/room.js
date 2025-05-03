@@ -3,6 +3,8 @@ const ws = new WebSocket('ws://localhost:3001');
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
 let localStream = null;
+let receivedBuffers = [];
+let fileSend = false;
 
 async function setupMediaAndConnection() {
   try {
@@ -20,6 +22,66 @@ async function setupMediaAndConnection() {
     }
   } catch (err) {
     console.error('Error setting up media:', err);
+  }
+}
+
+function initDataChannel(dataChannel) {
+  dataChannel.onopen = () => {
+    messageBox.disable = false;
+    sendMsgBtn.disable = false;
+  };
+
+  sendMsgBtn.addEventListener('click', () => {
+    if (dataChannel && dataChannel.readyState === "open") {
+      sendMessageHandler(dataChannel);
+    } else {
+      console.warn("Data channel is not open.");
+    }
+  });
+
+  sendFileBtn.addEventListener('click', ()=>{
+    if (dataChannel && dataChannel.readyState === "open") {
+      sendFileHandler(dataChannel, fileSend);
+    } else {
+      console.warn("Data channel is not open.");
+    }
+  })
+
+  dataChannel.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    const { type, user, message, fileChunk } = data;
+    if (type == 'message') {
+
+      addChat(user, message);
+
+    } else if (type == 'file' && fileSend == false) {
+
+      if (fileChunk === "EOF" || data.EOF == true) {
+
+        const fileName = receivedBuffers.shift();
+        const blob = new Blob(receivedBuffers);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        console.log("download url: ", url);
+        a.href = url;
+        a.download = fileName;
+        a.textContent = fileName;
+        a.click();
+        addChat(user, a.outerHTML);
+        console.log('anchor tag outHTMl: ',a.outerHTML);
+        receivedBuffers = [];
+
+      } else {
+
+        receivedBuffers.push(fileChunk);
+
+      }
+    }
+  };
+
+  dataChannel.onclose = () => {
+    messageBox.disable = true;
+    sendMsgBtn.disable = true;
   }
 }
 
@@ -91,29 +153,7 @@ ws.onmessage = async (message) => {
 
         const dataChannel = pc.createDataChannel("myChannel");
 
-        dataChannel.onopen = () => {
-          messageBox.disable = false;
-          sendMsgBtn.disable = false;
-        };
-
-        sendMsgBtn.addEventListener('click', () => {
-          if (dataChannel && dataChannel.readyState === "open") {
-            sendMessageHandler(dataChannel);
-          } else {
-            console.warn("Data channel is not open.");
-          }
-        });
-
-        dataChannel.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          const { user, message } = data;
-          addChat(user, message);
-        };
-
-        dataChannel.onclose = () => {
-          messageBox.disable = true;
-          sendMsgBtn.disable = true;
-        }
+        initDataChannel(dataChannel);
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -128,32 +168,7 @@ ws.onmessage = async (message) => {
         pc.ondatachannel = (event) => {
           const dataChannel = event.channel;
 
-          dataChannel.onopen = () => {
-            // messageBox.disable = false;
-            // sendMsgBtn.disable = false;
-          };
-
-          sendMsgBtn.addEventListener('click', () => {
-            if (dataChannel && dataChannel.readyState === "open") {
-              sendMessageHandler(dataChannel);
-            } else {
-              console.warn("Data channel is not open.");
-            }
-          });
-
-          dataChannel.onmessage = (event) => {
-            console.log(event.data);
-            const data = JSON.parse(event.data);
-            console.log(data);
-            const { user, message } = data;
-            console.log("datachannel on message",user);
-            addChat(user, message);
-          };  
-
-          dataChannel.onclose = () => {
-            // messageBox.disable = true;
-            // sendMsgBtn.disable = true;
-          }
+          initDataChannel(dataChannel);
         };
 
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
