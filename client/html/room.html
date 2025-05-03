@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <!-- <link rel="stylesheet" href="../css/room.css"> -->
-    <link rel="stylesheet" href="/css/room.css">
+    <link rel="stylesheet" href="../css/room.css">
+    <!-- <link rel="stylesheet" href="/css/room.css"> -->
 </head>
 <body>
     <div class="main-container">
@@ -15,7 +15,9 @@
         </div>
         <div class="room-chat">
             <div class="room-chat-sub">
-                <div class="chat" id="chat-box"></div>
+                <div class="chat-container" id="chat-box">
+                    
+                </div>
                 <div class="message-box">
                     <textarea name="message" id="message"></textarea>
                     <button id="send-message">send</button>
@@ -23,6 +25,7 @@
             </div>
         </div>
     </div>
+    <script src="/js/roomFrontend.js"></script>
     <script src="/js/room.js"></script>
 </body>
 </html>

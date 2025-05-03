@@ -2,24 +2,19 @@ const pc = new RTCPeerConnection();
 const ws = new WebSocket('ws://localhost:3001');
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
-let userName;
 let localStream = null;
-
-const messageBox = document.querySelector('#message');
-const sendMsgBtn = document.querySelector('#send-message');
-const chatBox = document.querySelector('#chat-box');
 
 async function setupMediaAndConnection() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    
+
     const localVideo = document.getElementById('self-video');
     localVideo.srcObject = localStream;
-    
+
     localStream.getTracks().forEach(track => {
       pc.addTrack(track, localStream);
     });
-    
+
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "join-room", roomId }));
     }
@@ -82,7 +77,7 @@ ws.onmessage = async (message) => {
   }
 
   console.log(`Received message type: ${data.type}`);
-  
+
   try {
     switch (data.type) {
       case "join-successful":
@@ -95,9 +90,30 @@ ws.onmessage = async (message) => {
         userName = "user1";
 
         const dataChannel = pc.createDataChannel("myChannel");
-        dataChannel.onopen = () => console.log("Data channel open");
-        dataChannel.onmessage = (event) => console.log("Received:", event.data);
-        dataChannel.onclose = () => {}
+
+        dataChannel.onopen = () => {
+          messageBox.disable = false;
+          sendMsgBtn.disable = false;
+        };
+
+        sendMsgBtn.addEventListener('click', () => {
+          if (dataChannel && dataChannel.readyState === "open") {
+            sendMessageHandler(dataChannel);
+          } else {
+            console.warn("Data channel is not open.");
+          }
+        });
+
+        dataChannel.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          const { user, message } = data;
+          addChat(user, message);
+        };
+
+        dataChannel.onclose = () => {
+          messageBox.disable = true;
+          sendMsgBtn.disable = true;
+        }
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -111,9 +127,33 @@ ws.onmessage = async (message) => {
 
         pc.ondatachannel = (event) => {
           const dataChannel = event.channel;
-          dataChannel.onopen = () => console.log("Data channel open");
-          dataChannel.onmessage = (event) => console.log("Received:", event.data);
-          dataChannel.onclose = (event) => {}
+
+          dataChannel.onopen = () => {
+            // messageBox.disable = false;
+            // sendMsgBtn.disable = false;
+          };
+
+          sendMsgBtn.addEventListener('click', () => {
+            if (dataChannel && dataChannel.readyState === "open") {
+              sendMessageHandler(dataChannel);
+            } else {
+              console.warn("Data channel is not open.");
+            }
+          });
+
+          dataChannel.onmessage = (event) => {
+            console.log(event.data);
+            const data = JSON.parse(event.data);
+            console.log(data);
+            const { user, message } = data;
+            console.log("datachannel on message",user);
+            addChat(user, message);
+          };  
+
+          dataChannel.onclose = () => {
+            // messageBox.disable = true;
+            // sendMsgBtn.disable = true;
+          }
         };
 
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -147,21 +187,4 @@ window.addEventListener('beforeunload', () => {
   pc.close();
   ws.close();
 });
-
-function sendMessageHandler(dataChannel, event){
-  const message = messageBox.textContent;
-
-  const payload = {
-    user: userName,
-    message
-  }
-
-  dataChannel.send(JSON.stringify(payload));
-}
-
-function receiveMessageHandler(user, message){
-  // create html element with #chat
-  // add innerHtml
-}
-
 // add eventlisteners to sendMsgBtn and messageBox
