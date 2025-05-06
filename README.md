@@ -51,7 +51,7 @@ Face2Face is a real-time video conferencing and file-sharing application leverag
 - **Client**: Contains the frontend code for the application.
   - `client/js/home.js` - Handles homepage logic for room creation and joining.
   - `client/js/room.js` - Manages room-specific WebRTC and WebSocket logic.
-  - `client/js/roomFrontend.js` - Implements file-sharing and chat features.
+  - `client/js/roomFeatures.js` - Implements file-sharing and chat features.
 
 - **Server**:
   - `server/wsServer/app.js` - WebSocket server for signaling.
