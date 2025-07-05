@@ -37,7 +37,7 @@ function sendFileHandler(dataChannel, fileSend) {
     type: 'file',
     user: userName,
   }
-  console.log('payload 1: ', { ...payload, fileChunk: file.name, EOF: false });
+  console.log('payload 1: ', { ...payload, fileChunk: file.name, EOF: false }); // EOF: end of file
   dataChannel.send(JSON.stringify({ ...payload, fileChunk: file.name, EOF: false }));
 
   reader.onload = e => {
