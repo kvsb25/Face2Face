@@ -1,9 +1,9 @@
-const selector = document.querySelector.bind(document);
-const input = selector("#roomID");
-const joinBtn = selector("#joinRoom");
-const errorBox = selector(".error");
-const loading = selector(".loading");
-const createBtn = selector("#createRoom");
+const select = document.querySelector.bind(document);
+const input = select("#roomID");
+const joinBtn = select("#joinRoom");
+const errorBox = select(".error");
+const loading = select(".loading");
+const createBtn = select("#createRoom");
 // const ws = new WebSocket('ws://localhost:3001');
 axios.defaults.baseURL = 'http://localhost:3000/';
 

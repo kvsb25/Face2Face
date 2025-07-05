@@ -1,5 +1,5 @@
-const pc = new RTCPeerConnection();
-const ws = new WebSocket('ws://localhost:3001');
+const pc = new RTCPeerConnection(); // pc : peer connection
+const ws = new WebSocket('ws://localhost:3001'); // ws : websocket connection
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
 let localStream = null;
@@ -85,6 +85,10 @@ function initDataChannel(dataChannel) {
   }
 }
 
+
+/************** Event Handlers **************/
+
+/**** Peer connection handlers ****/
 pc.addEventListener('connectionstatechange', () => {
   console.log("Connection state:", pc.connectionState);
   if (pc.connectionState === 'connected') {
@@ -110,6 +114,7 @@ pc.ontrack = (event) => {
   remoteVideo.srcObject = event.streams[0];
 };
 
+/**** Websocket Signaling server handlers ****/
 ws.onopen = () => {
   console.log("WebSocket connected");
   setupMediaAndConnection();
@@ -195,11 +200,11 @@ ws.onmessage = async (message) => {
   }
 };
 
-window.addEventListener('beforeunload', () => {
+/*** Window event handlers ***/
+window.addEventListener('beforeunload', () => { // to disconnect before leaving the page
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop());
   }
   pc.close();
   ws.close();
 });
-// add eventlisteners to sendMsgBtn and messageBox
