@@ -150,6 +150,13 @@ ws.onmessage = async (message) => {
       case "join-successful":
         console.log("Successfully joined room");
         break;
+      
+      // case "join-unsuccesful":
+      //   console.log("Room is full"); // display this on html
+      //   setTimeout(()=>{
+      //     window.location.href = "/";
+      //   }, 5000);
+      //   break;
 
       // caller creates offer  
       case "ready-to-offer":

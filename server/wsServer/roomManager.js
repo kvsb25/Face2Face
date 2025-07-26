@@ -15,7 +15,9 @@ const joinRoom = (room, socket) => {
     if(rooms[room]?.length >= maxClients){
         console.log("in joinRoom wss: if room is full");
         console.log('room full');
-        return; // emit an event for 'join-unsuccessful'
+        // emit an event for 'join-unsuccessful'
+        // socket.send(JSON.stringify({type: "join-unsuccessful"}));
+        return; 
     }
 
     rooms[room].push(socket);

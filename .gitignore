@@ -1,2 +1,5 @@
 node_modules/
 server/httpServer/redis.js
+.dockerignore
+Dockerfile
+start.sh
