@@ -4,8 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "https": "nodemon server/httpServer/app.js",
-    "wss": "nodemon server/wsServer/app.js"
+    "https": "node server/httpServer/app.js",
+    "wss": "node server/wsServer/app.js"
   },
   "keywords": [],
   "author": "",
