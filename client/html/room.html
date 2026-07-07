@@ -1,33 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="../css/room.css">
-    <!-- <link rel="stylesheet" href="/css/room.css"> -->
+    <title>Face2Face — Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/css/room.css">
 </head>
-<body>
-    <div class="main-container">
-        <div class="room-video">
-            <video class="self-video" id="self-video" autoplay playsinline muted></video>
-            <video id="remote-video" autoplay playsinline></video>
-        </div>
-        <div class="room-chat">
-            <div class="room-chat-sub">
-                <div class="chat-container" id="chat-box">
-                    
+
+<body class="h-screen overflow-hidden bg-slate-950 text-slate-100 antialiased">
+    <div class="main-container flex h-full flex-col lg:flex-row gap-4 p-4">
+
+        <!-- video area -->
+        <section class="room-video flex flex-1 min-h-0 flex-col gap-4">
+            <header class="flex items-center gap-2 shrink-0">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/15 ring-1 ring-brand-500/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-400" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m22 8-6 4 6 4V8Z" />
+                        <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+                    </svg>
+                </span>
+                <h1 class="text-lg font-semibold tracking-tight">Face<span class="text-brand-400">2</span>Face</h1>
+            </header>
+
+            <div class="grid flex-1 min-h-0 grid-rows-2 gap-4">
+                <div class="video-tile">
+                    <video class="self-video" id="self-video" autoplay playsinline muted></video>
+                    <span class="video-label">You</span>
                 </div>
-                <div class="message-box">
-                    <textarea name="message" id="message"></textarea>
-                    <button id="send-message">send message</button>
-                    <input type="file" id="file-input" placeholder="drag or select the files to be sent">
-                    <button id="send-file">send file</button>
+                <div class="video-tile">
+                    <video id="remote-video" autoplay playsinline></video>
+                    <span class="video-label">Peer</span>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- chat sidebar -->
+        <aside class="room-chat flex h-72 w-full shrink-0 flex-col lg:h-auto lg:w-96">
+            <div class="room-chat-sub flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-slate-900/80 ring-1 ring-white/10">
+
+                <div class="shrink-0 border-b border-white/10 px-4 py-3">
+                    <h2 class="text-sm font-semibold text-slate-300">Chat</h2>
+                </div>
+
+                <div class="chat-container flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4" id="chat-box">
+                </div>
+
+                <div class="message-box shrink-0 border-t border-white/10 p-3 space-y-2">
+                    <div class="flex items-end gap-2">
+                        <textarea name="message" id="message" rows="1" placeholder="Type a message…"
+                            class="flex-1 min-w-0 resize-none rounded-xl bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 ring-1 ring-white/10 outline-none transition focus:ring-2 focus:ring-brand-500"></textarea>
+                        <button id="send-message" title="Send message"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-500 active:scale-95 disabled:opacity-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m22 2-7 20-4-9-9-4Z" />
+                                <path d="M22 2 11 13" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="file-input"
+                            class="flex-1 min-w-0 text-xs text-slate-400 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-slate-200 file:cursor-pointer hover:file:bg-slate-700">
+                        <button id="send-file"
+                            class="shrink-0 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 ring-1 ring-white/10 transition hover:bg-slate-700 active:scale-95">
+                            Send file
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
+
     <script src="/js/roomFeatures.js"></script>
     <script src="/js/room.js"></script>
 </body>
+
 </html>
