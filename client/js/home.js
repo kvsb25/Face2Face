@@ -7,6 +7,17 @@ const createBtn = select("#createRoom");
 // const ws = new WebSocket('ws://localhost:3001');
 axios.defaults.baseURL = 'http://localhost:3000/';
 
+// show the reason when redirected back here (e.g. from a full room's URL)
+const errorReasons = {
+    room_full: "Can't join, the room is full",
+    no_room: "no such room exists",
+    server: "some server issue, try again later"
+};
+const errorParam = new URLSearchParams(window.location.search).get('error');
+if (errorParam) {
+    errorBox.textContent = errorReasons[errorParam] || 'something went wrong';
+}
+
 joinBtn.addEventListener('click', joinRoomHandler1)
 
 createBtn.addEventListener('click', createRoomHandler1);

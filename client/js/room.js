@@ -112,6 +112,7 @@ pc.ontrack = (event) => {
   console.log("Remote track received:", event.streams);
   const remoteVideo = document.getElementById('remote-video');
   remoteVideo.srcObject = event.streams[0];
+  document.getElementById('remote-placeholder')?.classList.add('hidden');
 };
 
 /**** Websocket Signaling server handlers ****/
@@ -150,6 +151,23 @@ ws.onmessage = async (message) => {
       case "join-successful":
         console.log("Successfully joined room");
         break;
+
+      case "join-unsuccessful":
+        console.log("Room is full");
+        window.location.href = "/?error=room_full";
+        break;
+
+      // the other peer closed their tab / left the room
+      case "peer-left": {
+        console.log("Peer left the room");
+        const remoteVideo = document.getElementById('remote-video');
+        if (remoteVideo.srcObject) {
+          remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+          remoteVideo.srcObject = null;
+        }
+        document.getElementById('remote-placeholder')?.classList.remove('hidden');
+        break;
+      }
       
       // case "join-unsuccesful":
       //   console.log("Room is full"); // display this on html
@@ -209,6 +227,9 @@ ws.onmessage = async (message) => {
 
 /*** Window event handlers ***/
 window.addEventListener('beforeunload', () => { // to disconnect before leaving the page
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "leave-room", roomId })); // tell the peer we left
+  }
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop());
   }

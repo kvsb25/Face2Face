@@ -4,7 +4,7 @@ const path = require('path');
 // const WebSocket = require('ws');
 const { STATIC_PATH } = require('../config.js').constants;
 // const { checkRoomAvailability, pendingRequests, wssCall } = require('./utils.js');
-const { createRoom, joinRoom, rooms } = require('./roomManager.js');
+const { createRoom, checkRoom } = require('./roomManager.js');
 // const ws = new WebSocket('ws://localhost:3001');
 
 app.use(express.json()); // to parse json data
@@ -68,31 +68,44 @@ app.get('/', (req, res) => {
 // })
 
 app.route('/api/room')
-    // join room 
-    .get((req, res)=>{
+    // join room: check existence and capacity; the actual join is counted
+    // by the wsServer when the peer's WebSocket connects from the room page
+    .get(async (req, res)=>{
         let room = req.query.roomId;
 
-        const result = joinRoom(room);
+        const status = await checkRoom(room);
 
-        if(result){
-            return res.status(200).send({roomId : room});
-        } else {
-            return res.status(400).send("Either the room doesn't exist or the room is full");
+        if(!status){
+            return res.status(500).send("some server issue, try again later");
+        } else if(!status.exists){
+            return res.status(404).send("the room doesn't exist");
+        } else if(status.full){
+            return res.status(409).send("the room is full");
         }
+        return res.status(200).send({roomId : room});
     })
     // create room
-    .post((req, res)=>{
-        let room = createRoom();
+    .post(async (req, res)=>{
+        let room = await createRoom();
+        if(!room){
+            return res.status(500).send("Couldn't create room");
+        }
         return res.status(200).send({roomId : room});
     })
 
-app.get('/room/:roomId', (req, res) => {
+// room page
+app.get('/room/:roomId', async (req, res) => {
     let room = req.params.roomId;
-    console.log("GET '/:roomId'; rooms.get(room) : " + rooms.get(room));
-    if(rooms.get(room) && rooms.get(room) <= 2){
-        return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`));
+    const status = await checkRoom(room);
+    console.log(`GET '/room/:roomId'; checkRoom(${room}): ` + JSON.stringify(status));
+    if(!status){
+        return res.redirect('/?error=server');
+    } else if(!status.exists){
+        return res.redirect('/?error=no_room');
+    } else if(status.full){
+        return res.redirect('/?error=room_full');
     } else {
-        throw new Error;
+        return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`));
     }
     // checkRoomAvailability(roomId, ws)
     //     .then((roomId)=>{

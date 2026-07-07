@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "https": "node server/httpServer/app.js",
-    "wss": "node server/wsServer/app.js"
+    "wss": "node server/wsServer/app.js",
+    "rooms": "node server/roomManager/app.js"
   },
   "keywords": [],
   "author": "",

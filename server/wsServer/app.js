@@ -10,10 +10,15 @@ wss.on('connection', (socket) => {
     console.log('data: ', data);
     
     if (data.type == 'join-room') {
-      
+
       let room = data.roomId;
       console.log("roomId: ", room);
       joinRoom(room, socket);
+
+    } else if (data.type == 'leave-room') {
+
+      // sent from the client's 'beforeunload' handler
+      leaveRoom(socket.room, socket);
 
     } else if (['offer', 'answer', 'ice-candidate'].includes(data.type)) {
       try{

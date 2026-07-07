@@ -1,48 +1,34 @@
-const maxClients = 2;
-const rooms = new Map();
+const { ROOM_MANAGER_URL } = require('../config.js').constants;
 
-const createRoom = () => {
-    let room = generateRandomString();
-    rooms.set(room,1);
-    console.log("createRoom(): "+rooms.get(room));
-    return room;
-}
+// REST client for the roomManager service. The httpServer creates and checks
+// rooms; the actual join/leave counting is done by the wsServer when a peer's
+// WebSocket connects or disconnects (see server/wsServer/roomManager.js).
 
-const joinRoom = (room) => {
-    let userCount = rooms.get(room);
-    console.log("joinRoomA: "+rooms.get(room));
-    console.log("joinRoomB: "+userCount);
-    if(rooms.has(room) && (userCount < maxClients)){
-        userCount++;
-        rooms.set(room, userCount);
-        return true;
-    } else {
-        return false;
+const createRoom = async () => {
+    try {
+        const response = await fetch(`${ROOM_MANAGER_URL}/api/rooms`, { method: 'POST' });
+        if (!response.ok) return null;
+        const data = await response.json();
+        console.log("createRoom(): " + data.roomId);
+        return data.roomId;
+    } catch (err) {
+        console.error("createRoom(): roomManager service unreachable: " + err);
+        return null;
     }
-
 }
 
-const checkRoom = (room) => {
-    return rooms.has(room)
-}
-
-function getRandomLetters(length) {
-    let result = '';
-    const characters = 'abcdefghijklmnopqrstuvwxyz';
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
+// returns { exists, full } or null when the service is unreachable
+const checkRoom = async (room) => {
+    try {
+        const response = await fetch(`${ROOM_MANAGER_URL}/api/rooms/${room}`);
+        if (response.status === 404) return { exists: false, full: false };
+        if (!response.ok) return null;
+        const data = await response.json();
+        return { exists: true, full: data.full };
+    } catch (err) {
+        console.error("checkRoom(): roomManager service unreachable: " + err);
+        return null;
     }
-    return result;
 }
 
-function generateRandomString() {
-    let result = getRandomLetters(3) + '-' + getRandomLetters(3) + '-' + getRandomLetters(3);
-
-    if(!(rooms.has(result))) {
-        return result;
-    } else {
-        return generateRandomString();
-    }
-}  
-
-module.exports = {createRoom, joinRoom, rooms};
+module.exports = { createRoom, checkRoom };
