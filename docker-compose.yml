@@ -1,0 +1,32 @@
+services:
+
+  # room state service; only reachable from the other services over the
+  # compose network (no published port), addressed as http://roommanager:3002
+  roommanager:
+    build:
+      context: .
+      dockerfile: server/roomManager/Dockerfile
+
+  # serves the client and the room REST API to the browser
+  httpserver:
+    build:
+      context: .
+      dockerfile: server/httpServer/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      ROOM_MANAGER_URL: http://roommanager:3002
+    depends_on:
+      - roommanager
+
+  # WebRTC signaling server; the browser connects to it directly
+  wsserver:
+    build:
+      context: .
+      dockerfile: server/wsServer/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      ROOM_MANAGER_URL: http://roommanager:3002
+    depends_on:
+      - roommanager

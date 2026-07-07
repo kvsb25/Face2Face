@@ -1,0 +1,13 @@
+{
+  "name": "face2face-roommanager",
+  "version": "1.0.0",
+  "description": "room state service for Face2Face",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

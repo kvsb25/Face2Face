@@ -1,5 +1,5 @@
 const pc = new RTCPeerConnection(); // pc : peer connection
-const ws = new WebSocket('ws://localhost:3001'); // ws : websocket connection
+const ws = new WebSocket(`ws://${window.location.hostname}:3001`); // ws : websocket connection, same host that served the page
 const urlParts = window.location.pathname.split('/');
 const roomId = urlParts[urlParts.length - 1];
 let localStream = null;

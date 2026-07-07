@@ -1,0 +1,13 @@
+{
+  "name": "face2face-httpserver",
+  "version": "1.0.0",
+  "description": "http server for Face2Face: serves the client and the room API",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

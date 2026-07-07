@@ -5,7 +5,7 @@ const errorBox = select(".error");
 const loading = select(".loading");
 const createBtn = select("#createRoom");
 // const ws = new WebSocket('ws://localhost:3001');
-axios.defaults.baseURL = 'http://localhost:3000/';
+axios.defaults.baseURL = window.location.origin; // the API is served by the same server as the page
 
 // show the reason when redirected back here (e.g. from a full room's URL)
 const errorReasons = {

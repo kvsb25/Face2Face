@@ -1,0 +1,13 @@
+{
+  "name": "face2face-wsserver",
+  "version": "1.0.0",
+  "description": "WebRTC signaling server for Face2Face",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.1"
+  }
+}
