@@ -1,19 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Face2Face — Error</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="error">Some unusual error occured! You'll be redirected to the home page in <p></p></div>
+
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased flex items-center justify-center px-4">
+    <div class="error w-full max-w-md rounded-2xl bg-slate-900/80 ring-1 ring-white/10 shadow-2xl shadow-black/50 p-8 text-center">
+        <span class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/15 ring-1 ring-rose-500/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-rose-400" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+        </span>
+        <h1 class="text-xl font-bold tracking-tight mb-2">Something went wrong</h1>
+        <div class="text-sm text-slate-400">
+            Some unusual error occurred! You'll be redirected to the home page in
+        </div>
+        <!-- countdown target: must remain the first <p> in the document (see script below) -->
+        <p class="mt-4 text-5xl font-bold tabular-nums text-rose-400"></p>
+        <a href="/" class="mt-6 inline-block rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-white active:scale-[.98]">
+            Go home now
+        </a>
+    </div>
     <script>
         let countdown = document.querySelector("p");
         let count = 10;
-        
-        function redirectCountdown(){
+
+        function redirectCountdown() {
             countdown.textContent = count--;
-            if(count === -1){
+            if (count === -1) {
                 window.location.href = '/';
             }
             setTimeout(redirectCountdown, 1000);
@@ -22,4 +43,5 @@
         redirectCountdown();
     </script>
 </body>
+
 </html>
