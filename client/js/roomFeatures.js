@@ -4,9 +4,29 @@ const sendMsgBtn = document.querySelector('#send-message');
 const chatBox = document.querySelector('#chat-box');
 const sendFileBtn = document.querySelector('#send-file');
 const fileInput = document.querySelector('#file-input');
+const MESSAGE_BOX_MAX_HEIGHT = 120; // px, ~5 lines; beyond this the box scrolls
+
+// Enter sends the message instead of inserting a newline; the text only
+// soft-wraps, it never contains actual newline characters
+messageBox.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    sendMsgBtn.click();
+  }
+});
+
+// grow the message box with its content
+messageBox.addEventListener('input', resizeMessageBox);
+
+function resizeMessageBox() {
+  messageBox.style.height = 'auto';
+  messageBox.style.height = `${Math.min(messageBox.scrollHeight, MESSAGE_BOX_MAX_HEIGHT)}px`;
+  messageBox.style.overflowY = messageBox.scrollHeight > MESSAGE_BOX_MAX_HEIGHT ? 'auto' : 'hidden';
+}
 
 function sendMessageHandler(dataChannel) {
   const message = messageBox.value;
+  if (!message.trim()) return;
   addChat(userName, message);
   const payload = {
     type: 'message',
@@ -15,6 +35,8 @@ function sendMessageHandler(dataChannel) {
   }
   console.log(`payload: ${payload}`);
   dataChannel.send(JSON.stringify(payload));
+  messageBox.value = '';
+  resizeMessageBox();
 }
 
 function sendFileHandler(dataChannel, fileSend) {
