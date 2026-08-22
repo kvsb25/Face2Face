@@ -16,57 +16,6 @@ app.get('/', (req, res) => {
     return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/home.html`));
 })
 
-// app.get('/api/room', async (req, res) => {
-//     let { roomId } = req.query;
-//     let response, err;
-//     await checkRoomAvailability(roomId, ws)
-//         .then((roomId) => {
-//             // return res.status(200).json({roomId});
-//             console.log("GET /api/room; roomId" + roomId);
-//             response = roomId;
-//         })
-//         .catch((error) => {
-//             // return res.status(400).send(error)
-//             console.log("GET /api/room; error: " + error);
-//             err = error;
-//         });
-
-//     if(response && !err){
-//         return res.status(200).json({roomId : response});
-//     } else if (!response && err) {
-//         return res.status(500).send(err);
-//     }
-//     // return res.status(200).send("nill");
-//     // wssCall(ws, {type: 'CHECK_ROOM2', roomId})
-//     //     .then((roomId)=>{
-//     //         res.redirect(`/${roomId}`);
-//     //     })
-//     //     .catch((error)=>{
-//     //         res.status(400).send(error)
-//     //     })
-// })
-
-// app.post('/api/room', async (req, res) => {
-//     let response, err;
-//     await createRoom(ws)
-//         .then((roomId)=>{
-//             // return res.status(200).json({roomId});
-//             console.log("POST /api/room; roomId: "+ roomId);
-//             response = roomId;
-//         })
-//         .catch((error)=>{
-//             // return res.status(400).send(error);
-//             console.log("POST /api/room; error: " + error);
-//             err = error;
-//         });
-
-//     if(response && !err){
-//         return res.status(200).json({roomId : response});
-//     } else if (!response && err) {
-//         return res.status(500).send(err);
-//     }
-// })
-
 app.route('/api/room')
     // join room: check existence and capacity; the actual join is counted
     // by the wsServer when the peer's WebSocket connects from the room page
@@ -107,21 +56,14 @@ app.get('/room/:roomId', async (req, res) => {
     } else {
         return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`));
     }
-    // checkRoomAvailability(roomId, ws)
-    //     .then((roomId)=>{
-    //         return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`))
-    //     })
-    //     .catch((error)=>{
-    //         return res.redirect('/');
-    //     })
-    // return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/room.html`));
-    // return res.send("html page with the client side webRTC and websocket logic for video conferencing, chat etc.");
 })
 
 app.use((error, req, res, next)=>{
     // res.status(500).send('Something broke!')
     return res.sendFile(path.join(__dirname, STATIC_PATH + `/html/error.html`));
 })
+
+app.listen(3000, () => { console.log("http listening at 3000") });
 
 // ws to get updates from the WSS
 // ws.addEventListener('message', (message) => {
@@ -139,5 +81,3 @@ app.use((error, req, res, next)=>{
 //         reject(type);
 //     }
 // });
-
-app.listen(3000, () => { console.log("http listening at 3000") });
