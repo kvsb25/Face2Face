@@ -3,7 +3,7 @@ const wss = new WebSocket.Server({ port: 3001 });
 const {joinRoom, leaveRoom, rooms} = require('./roomManager.js');
 
 wss.on('connection', (socket) => {
-  socket.binaryType = 'arraybuffer';
+  // socket.binaryType = 'arraybuffer'; // remove this unnecessary line of code
   socket.on('message', (message) => {
     console.log(`typeof message: ${typeof message}`);
     const data = JSON.parse(message);

@@ -8,7 +8,9 @@ RUN npm install --omit=dev --silent
 
 COPY server/config.js ./server/config.js
 COPY server/httpServer ./server/httpServer
-COPY client ./client
+
+# to help serve the static content
+COPY client ./client 
 
 EXPOSE 3000
 

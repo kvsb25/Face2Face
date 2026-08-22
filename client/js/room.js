@@ -102,6 +102,7 @@ pc.oniceconnectionstatechange = () => {
   console.log("ICE state:", pc.iceConnectionState);
 };
 
+// sends new ice-candidates to peer when discovered
 pc.onicecandidate = (event) => {
   if (event.candidate) {
     ws.send(JSON.stringify({ type: "ice-candidate", candidate: event.candidate }));

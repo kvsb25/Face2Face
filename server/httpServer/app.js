@@ -43,6 +43,8 @@ app.route('/api/room')
     })
 
 // room page
+// the reason this endpoint checks again for the room status is that this endpoint can be reached separately
+//      someone can try to reach the room page without joining the room, hence redundant room status check is necessary
 app.get('/room/:roomId', async (req, res) => {
     let room = req.params.roomId;
     const status = await checkRoom(room);
