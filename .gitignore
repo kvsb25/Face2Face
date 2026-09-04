@@ -1,3 +1,10 @@
 node_modules/
 server/httpServer/redis.js
 notes.txt
+
+# secrets — never commit; regenerate with `npm run secrets:init`
+.env
+.env.*
+!.env.example
+
+coverage/

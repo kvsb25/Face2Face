@@ -1,0 +1,109 @@
+// Face2Face auth schema (SRS §5.1).
+// `url` is the least-privilege application role used at runtime; `directUrl` is
+// the schema owner and is used only by Prisma Migrate, so the running service
+// can never issue DDL. (SRS C-6, FR-VAL-05)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_MIGRATIONS")
+}
+
+enum UserStatus {
+  active
+  locked
+  deleted
+
+  @@map("user_status")
+}
+
+model User {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String     @unique @db.Citext
+  emailVerified Boolean    @default(false) @map("email_verified")
+  passwordHash  String?    @map("password_hash") // null for OAuth-only accounts
+  displayName   String     @map("display_name")
+  avatarUrl     String?    @map("avatar_url")
+  status        UserStatus @default(active)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt   DateTime?  @map("last_login_at") @db.Timestamptz(6)
+
+  oauthAccounts OAuthAccount[]
+  refreshTokens RefreshToken[]
+  authEvents    AuthEvent[]
+  rooms         Room[]
+
+  @@map("users")
+}
+
+model OAuthAccount {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  provider       String
+  providerUserId String   @map("provider_user_id")
+  providerEmail  String?  @map("provider_email") @db.Citext
+  linkedAt       DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model RefreshToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  familyId   String    @map("family_id") @db.Uuid // equals the access token's `sid`
+  tokenHash  Bytes     @unique @map("token_hash") // sha256 of the opaque token
+  issuedAt   DateTime  @default(now()) @map("issued_at") @db.Timestamptz(6)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  familyEndsAt DateTime @map("family_ends_at") @db.Timestamptz(6) // absolute cap on the family
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedBy String?   @map("replaced_by") @db.Uuid
+  jti        String    @db.Uuid // access token id issued alongside, for revocation
+  ipHash     Bytes?    @map("ip_hash")
+  userAgent  String?   @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model AuthEvent {
+  id        BigInt   @id @default(autoincrement())
+  userId    String?  @map("user_id") @db.Uuid
+  eventType String   @map("event_type")
+  success   Boolean
+  ipHash    Bytes?   @map("ip_hash")
+  userAgent String?  @map("user_agent")
+  detail    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt])
+  @@map("auth_events")
+}
+
+model Room {
+  roomCode    String    @id @map("room_code")
+  ownerUserId String?   @map("owner_user_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  endedAt     DateTime? @map("ended_at") @db.Timestamptz(6)
+
+  owner User? @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, createdAt(sort: Desc)])
+  @@map("rooms")
+}
