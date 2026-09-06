@@ -34,7 +34,14 @@
     <!-- decorative background glow -->
     <div class="pointer-events-none fixed inset-0 bg-glow"></div>
 
-    <main class="relative min-h-screen flex flex-col items-center justify-center px-4 py-10">
+    <!-- account bar (filled in by home.js once the session is known) -->
+    <header class="relative flex justify-end items-center gap-3 px-4 pt-4 text-sm">
+        <span id="account-name" class="hidden text-slate-400"></span>
+        <button id="sign-out" class="hidden rounded-lg px-3 py-1.5 font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-slate-800">Sign out</button>
+        <a id="sign-in-link" href="/login" class="hidden rounded-lg px-3 py-1.5 font-medium text-slate-300 ring-1 ring-white/10 transition hover:bg-slate-800">Sign in</a>
+    </header>
+
+    <main class="relative flex flex-col items-center justify-center px-4 py-10" style="min-height: calc(100vh - 4rem);">
 
         <!-- logo + title -->
         <div class="flex items-center gap-3 mb-3">
@@ -75,6 +82,10 @@
                 class="w-full rounded-xl bg-slate-100 px-6 py-3 font-semibold text-slate-900 transition hover:bg-white active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed">
                 Create a new room
             </button>
+            <a id="createRoomSignIn" href="/login?next=/"
+                class="hidden w-full rounded-xl bg-slate-100 px-6 py-3 text-center font-semibold text-slate-900 transition hover:bg-white active:scale-[.98]">
+                Sign in to create a room
+            </a>
 
             <div class="error mt-4 min-h-[1.25rem] text-center text-sm text-rose-400"></div>
         </div>
@@ -84,7 +95,7 @@
         </footer>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/js/auth.js"></script>
     <script src="/js/home.js"></script>
 </body>
 

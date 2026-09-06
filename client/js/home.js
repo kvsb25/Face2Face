@@ -1,11 +1,14 @@
+const { apiFetch, fetchCurrentUser } = window.F2FAuth;
+
 const select = document.querySelector.bind(document);
 const input = select("#roomID");
 const joinBtn = select("#joinRoom");
 const errorBox = select(".error");
-const loading = select(".loading");
 const createBtn = select("#createRoom");
-// const ws = new WebSocket('ws://localhost:3001');
-axios.defaults.baseURL = window.location.origin; // the API is served by the same server as the page
+const createSignInLink = select("#createRoomSignIn");
+const accountName = select("#account-name");
+const signOutBtn = select("#sign-out");
+const signInLink = select("#sign-in-link");
 
 // show the reason when redirected back here (e.g. from a full room's URL)
 const errorReasons = {
@@ -18,145 +21,78 @@ if (errorParam) {
     errorBox.textContent = errorReasons[errorParam] || 'something went wrong';
 }
 
-joinBtn.addEventListener('click', joinRoomHandler1)
+// Joining stays open to everyone; only creating a room needs an account, and
+// the server enforces that regardless of what this page shows.
+fetchCurrentUser().then(renderAuthState);
 
-createBtn.addEventListener('click', createRoomHandler1);
+function renderAuthState(user) {
+    const signedIn = Boolean(user);
 
-function joinRoomHandler1(){
-    disableBtn(createBtn);
-    let roomId = input.value;
-    // loading.style.display = 'block';
-    console.log("join room handler : home.js");
-    axios.get(`api/room?roomId=${roomId}`)
-        .then((response)=>{
-            console.log("inside axios, join room handler : home.js");
-            console.log(roomId);
-            window.location.href = `/room/${response.data.roomId}`;
-        })
-        .catch((error)=>{
-            // loading.style.display = 'none';
-            console.log("home.js error: "+error);
-            errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
-        })
+    createBtn.classList.toggle('hidden', !signedIn);
+    createSignInLink.classList.toggle('hidden', signedIn);
+    signInLink.classList.toggle('hidden', signedIn);
+    signOutBtn.classList.toggle('hidden', !signedIn);
+    accountName.classList.toggle('hidden', !signedIn);
+
+    if (signedIn) {
+        // display names come from other people's input: set as text, never HTML
+        accountName.textContent = user.displayName;
+    }
 }
 
-function createRoomHandler1() {
+signOutBtn.addEventListener('click', async () => {
+    signOutBtn.disabled = true;
+    try {
+        await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+        console.warn('sign out failed:', err.message);
+    }
+    window.location.reload();
+});
+
+joinBtn.addEventListener('click', joinRoomHandler);
+createBtn.addEventListener('click', createRoomHandler);
+
+// Enter in the room code box joins, matching the button next to it
+input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        joinBtn.click();
+    }
+});
+
+async function joinRoomHandler() {
     disableBtn(joinBtn);
-    axios.post(`/api/room`)
-        .then((response)=>{
-            window.location.href = `/room/${response.data.roomId}`;
-        })
-        .catch((error)=>{
-            errorBox.textContent = `can't join room: ${error.response?.data || 'some server issue'}`;
-        })
+    errorBox.textContent = '';
+
+    const roomId = input.value.trim().toLowerCase();
+    try {
+        const data = await apiFetch(`/api/room?roomId=${encodeURIComponent(roomId)}`);
+        window.location.href = `/room/${data.roomId}`;
+    } catch (err) {
+        errorBox.textContent = `can't join room: ${err.message}`;
+    }
 }
 
-function disableBtn(btn){
+async function createRoomHandler() {
+    disableBtn(createBtn);
+    errorBox.textContent = '';
+
+    try {
+        const data = await apiFetch('/api/room', { method: 'POST' });
+        window.location.href = `/room/${data.roomId}`;
+    } catch (err) {
+        if (err.status === 401) {
+            window.location.href = '/login?next=/';
+            return;
+        }
+        errorBox.textContent = `can't create room: ${err.message}`;
+    }
+}
+
+function disableBtn(btn) {
     btn.disabled = true;
-    setTimeout(()=>{
+    setTimeout(() => {
         btn.disabled = false;
     }, 1500);
 }
-
-// ws.onmessage = (message) => {
-//     const data = JSON.parse(message.data);
-//     console.log(data);
-//     console.log(data.roomId);
-//     console.log(typeof data.roomId);
-//     if (data.type == "ROOM_FULL") {
-
-//         // display error message : "Can't join room full"
-//         errorBox.textContent = "Can't join, room is full";
-        
-//     } else if (data.type == "AVAILABLE") {
-        
-//         console.log('roomId in home.js: '+data.roomId)
-//         window.location.href = `/${data.roomId}`;
-        
-//     } else if (data.type == "NO_ROOM") {
-        
-//         // display error message: "No such room exists"
-//         errorBox.textContent = 'no such room exists';
-        
-//     } else if (data.type == "CREATE_ROOM") {
-        
-//         if (data.roomId !== 'no_ID') {
-
-//             // redirect to the newly created room
-//             window.location.href = `/${data.roomId}`;
-            
-//         } else {
-            
-//             // display error message
-//             errorBox.textContent = 'Some issue at the server. Try again some time later!';
-//         }
-//     }
-// }
-
-// ws.onerror = (error) => {
-//     console.error("Websocket error: " + error);
-// }
-
-// unt-shunt script 
-// const ws = new WebSocket('ws://localhost:3001');
-// from the roomId input box 
-
-// function joinRoomHandler() {
-//     if (!ws) {
-//         const ws = new WebSocket('ws://localhost:3001');
-//     }
-
-//     ws.onopen = () => {
-//         ws.send(JSON.stringify({ type: 'CHECK_ROOM', roomId }));
-//     }
-
-//     ws.onmessage = (message) => {
-//         const data = JSON.parse(message);
-//         ws.close();
-//         delete ws;
-
-//         if (data.type == "ROOM_FULL") {
-
-//             // display error message : "Can't join room full"
-
-//         } else if (data.type == "AVAILABLE") {
-
-//             window.location.href = `/${roomId}`
-
-//         } else if (data.type == "NO_ROOM") {
-
-//             // display error message: "No such room exists"
-
-//         }
-//     }
-
-//     ws.onerror = (error) => {
-//         console.error("Websocket error: " + error);
-//     }
-// }
-
-// function createRoomHandler() {
-//     if (!ws) {
-//         const ws = new WebSocket('ws://localhost:3001');
-//     }
-
-//     ws.onopen = () => {
-//         ws.send(JSON.stringify({ type: 'CREATE_ROOM', roomId }));
-//     }
-
-//     ws.onmessage = (message) => {
-//         const data = JSON.parse(message);
-
-//         if (/*data.type == "ROOM_ID"*/ data.type == "CREATE_ROOM") {
-//             // disconnect from the WSS (Signaling server)
-//             ws.close();
-//             ws = null;
-//             if (data.roomId !== 'no_ID') {
-//                 // redirect to the newly created room
-//                 window.location.href = `/${data.roomId}`;
-//             } else {
-//                 // display error message
-//             }
-//         }
-//     }
-// }
