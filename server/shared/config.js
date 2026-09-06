@@ -67,8 +67,11 @@ const authSchema = baseSchema.extend({
     JWT_PUBLIC_KEY: pem,
     JWT_KEY_ID: z.string().min(1),
     PASSWORD_PEPPER: secret,
-    ARGON2_MEMORY_KIB: z.coerce.number().int().min(19456).default(19456),
-    ARGON2_TIME_COST: z.coerce.number().int().min(2).default(2),
+    // The OWASP floor is enforced below for every environment except `test`,
+    // where the suite deliberately runs cheap parameters so hundreds of hashes
+    // do not take minutes. (SRS FR-TEST-07)
+    ARGON2_MEMORY_KIB: z.coerce.number().int().min(1024).default(19456),
+    ARGON2_TIME_COST: z.coerce.number().int().min(1).default(2),
     ARGON2_PARALLELISM: z.coerce.number().int().min(1).default(1),
     ARGON2_MAX_CONCURRENCY: z.coerce.number().int().min(1).default(4),
     LOGIN_MAX_FAILURES: z.coerce.number().int().min(1).default(5),
@@ -81,6 +84,20 @@ const schemas = {
     ws: baseSchema,
     rooms: baseSchema,
 };
+
+// OWASP's minimum Argon2id parameters. Only the test environment is allowed to
+// go below them, and only because its hashes protect nothing.
+const ARGON2_FLOOR = { memory: 19456, time: 2 };
+
+function assertHashingStrength(cfg) {
+    if (cfg.NODE_ENV === 'test' || cfg.service !== 'auth') return;
+    if (cfg.ARGON2_MEMORY_KIB < ARGON2_FLOOR.memory || cfg.ARGON2_TIME_COST < ARGON2_FLOOR.time) {
+        throw new Error(
+            `Argon2 parameters are below the safe floor (m=${ARGON2_FLOOR.memory}, t=${ARGON2_FLOOR.time}); `
+            + `got m=${cfg.ARGON2_MEMORY_KIB}, t=${cfg.ARGON2_TIME_COST}`
+        );
+    }
+}
 
 // Production must never run with development-grade settings. These checks are
 // deliberately separate from the schema so the message names the risk.
@@ -124,6 +141,7 @@ function load(service, env = process.env) {
     }
 
     assertProductionSafety(result.data);
+    assertHashingStrength({ ...result.data, service });
 
     const cfg = Object.freeze({
         ...result.data,
@@ -138,4 +156,4 @@ function load(service, env = process.env) {
     return cfg;
 }
 
-module.exports = { load, schemas, assertProductionSafety };
+module.exports = { load, schemas, assertProductionSafety, assertHashingStrength, ARGON2_FLOOR };
