@@ -1,4 +1,4 @@
-const { ROOM_MANAGER_URL } = require('../config.js').constants;
+const { ROOM_MANAGER_URL } = require('../shared/config.js').load('http');
 
 // REST client for the roomManager service. The httpServer creates and checks
 // rooms; the actual join/leave counting is done by the wsServer when a peer's
