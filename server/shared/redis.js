@@ -18,10 +18,19 @@ async function getRedis(cfg, logger) {
     if (client && client.isOpen) return client;
     if (connecting) return connecting;
 
-    client = createClient({ url: urlForConfig(cfg) });
+    client = createClient({
+        url: urlForConfig(cfg),
+        socket: {
+            connectTimeout: 5000,
+            // Retry with backoff, but give up rather than reconnecting forever:
+            // an unbounded retry loop turns "Redis is down" into a silent hang
+            // at startup instead of an error someone can act on.
+            reconnectStrategy: (attempts) => (attempts > 5 ? new Error('Redis unreachable') : Math.min(attempts * 200, 2000)),
+        },
+    });
     client.on('error', (err) => {
         // node-redis reconnects on its own; log without crashing the process
-        if (logger) logger.error({ err }, 'redis error');
+        if (logger) logger.error({ err: err.message }, 'redis error');
     });
 
     connecting = client.connect().then(() => {
@@ -30,7 +39,7 @@ async function getRedis(cfg, logger) {
     }).catch((err) => {
         connecting = null;
         client = null;
-        throw err;
+        throw new Error(`Redis is not reachable at ${urlForConfig(cfg).replace(/\/\/.*@/, '//')}: ${err.message}`);
     });
 
     return connecting;
