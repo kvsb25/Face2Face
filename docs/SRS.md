@@ -237,7 +237,7 @@ Baseline gaps this SRS addresses: no identity, no authorisation, no persistence,
 
 | ID | Priority | Requirement |
 |---|---|---|
-| FR-SESS-05 | MUST | Every `/refresh` consumes the presented RT and issues a new one in the same family. Consumption and issuance MUST be atomic (single transaction with `SELECT … FOR UPDATE` on the token row) so concurrent refreshes cannot both succeed. |
+| FR-SESS-05 | MUST | Every `/refresh` consumes the presented RT and issues a new one in the same family. Consumption MUST be atomic so concurrent refreshes cannot both succeed. Implemented as a **conditional update** (compare-and-swap): `UPDATE … SET consumed_at = now() WHERE id = $1 AND consumed_at IS NULL AND revoked_at IS NULL`, where an affected-row count of 1 means this caller won and 0 means another already did. Two concurrent updates serialise on the row lock, and under READ COMMITTED the loser re-evaluates its `WHERE` against the committed row and matches nothing. This replaces the `SELECT … FOR UPDATE` originally specified: the guarantee is identical and no lock is held across an application round trip, so a slow client cannot pin the row. |
 | FR-SESS-06 | MUST | Presenting an already-consumed or revoked RT MUST revoke the **entire family**, add every live `jti` of that family to the revocation set, return `401 TOKEN_REUSE_DETECTED`, and log a high-severity audit event. |
 | FR-SESS-07 | MUST | A refresh MUST be rejected if the account is disabled or deleted. |
 | FR-SESS-08 | SHOULD | RT rows record a hash of the client IP and a truncated user-agent so `/sessions` can present recognisable devices without storing raw PII. |
@@ -330,8 +330,8 @@ Baseline gaps this SRS addresses: no identity, no authorisation, no persistence,
 | FR-VAL-01 | MUST | Every externally reachable input — body, query, route params, headers used in logic, cookies, and WebSocket frames — MUST be validated by a declarative schema (**Zod**) at the service edge, before any business logic. |
 | FR-VAL-02 | MUST | Validation is **allow-list** based: `.strict()` objects that reject unknown keys, explicit types, explicit max lengths, explicit enums. Nothing is coerced silently. |
 | FR-VAL-03 | MUST | Field rules: `email` ≤ 254 chars, RFC-5322-practical pattern, normalised (NFKC, trim, lowercase); `password` 12–128 chars, no trimming, rejected if it contains `\0`; `displayName` 1–50 chars, Unicode letters/digits/space/`-`/`_`/`'`, collapsed whitespace, no control characters or bidi overrides; `roomId` exactly `^[a-z]{3}-[a-z]{3}-[a-z]{3}$`; `state`/`code`/`ticket` base64url with length bounds. |
-| FR-VAL-04 | MUST | **SQL injection:** every query uses parameterised placeholders via `pg`. String concatenation or template interpolation of user data into SQL is forbidden and MUST be caught by an ESLint rule in CI. Table/column identifiers are never taken from user input. Stored procedures/dynamic SQL are not used. |
-| FR-VAL-05 | MUST | The application database role has `CONNECT`, `SELECT/INSERT/UPDATE/DELETE` on application tables only — no `CREATE`, no superuser, no access to other databases. Migrations run under a separate owner role. |
+| FR-VAL-04 | MUST | **SQL injection:** all database access goes through the **Prisma** client, which parameterises every value it sends. `$queryRawUnsafe` and `$executeRawUnsafe` are forbidden outright, and `$queryRaw`/`$executeRaw` may be used only as tagged templates (which parameterise their interpolations) — an ESLint rule in CI MUST enforce both. Table/column identifiers are never taken from user input. Stored procedures/dynamic SQL are not used. |
+| FR-VAL-05 | MUST | The application database role has `CONNECT`, `SELECT/INSERT/UPDATE/DELETE` on application tables only — no `CREATE`, no superuser, no access to other databases. Migrations run under a separate owner role. The split is expressed in `schema.prisma` as `url` (the application role, used by the running client) and `directUrl` (the owner role, used only by the Prisma Migrate CLI), so the serving process holds no DDL rights at all. |
 | FR-VAL-06 | MUST | **Redis injection:** every user-derived key component MUST be validated against its schema or hashed before being concatenated into a key; commands are issued via the client's parameterised API (never `sendCommand` with a user-built string). |
 | FR-VAL-07 | MUST | **Header/log injection:** values echoed into headers or logs MUST have CR/LF stripped; logs are structured JSON (no string concatenation of user input into a log line). |
 | FR-VAL-08 | MUST | **XSS:** the client MUST render all peer-supplied content (chat text, display names, file names) with `textContent`. The existing `addChat(user, a.outerHTML)` path in [client/js/roomFeatures.js](../client/js/roomFeatures.js) MUST be replaced by DOM construction with `createElement` + `textContent`; downloaded file names MUST be sanitised (strip path separators and control characters) before being used as a download name. |
@@ -365,6 +365,8 @@ Baseline gaps this SRS addresses: no identity, no authorisation, no persistence,
 ## 5. Data requirements
 
 ### 5.1 PostgreSQL schema (`face2face` database, schema `app`)
+
+The canonical definition is [`prisma/schema.prisma`](../prisma/schema.prisma); the SQL below is what it produces, and is the shape any reviewer should check the migration against. Constraints Prisma cannot express (the length and room-code checks) are appended to the migration by hand.
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS citext;
@@ -438,8 +440,8 @@ CREATE INDEX ON app.rooms (owner_user_id, created_at DESC);
 
 | ID | Priority | Requirement |
 |---|---|---|
-| FR-DB-01 | MUST | Schema changes are applied by versioned, reversible migrations (`node-pg-migrate`), checked into git, run as a deploy step — never automatically at application boot in production. |
-| FR-DB-02 | MUST | Connection pooling via `pg.Pool` with bounded `max`, `connectionTimeoutMillis`, `idleTimeoutMillis`, and `statement_timeout` set at the role level. |
+| FR-DB-01 | MUST | Schema changes are applied by versioned migrations (**Prisma Migrate**), checked into git as plain SQL under `prisma/migrations/`, and applied with `prisma migrate deploy` as a deploy step — never automatically at application boot in production. Migrations MUST create their own extensions (`CREATE EXTENSION IF NOT EXISTS citext`) so a fresh database provisions itself. |
+| FR-DB-02 | MUST | Connection pooling is configured on the connection string — `connection_limit`, `pool_timeout`, `connect_timeout` — since Prisma manages the pool internally. `statement_timeout` is set at the role level (`ALTER ROLE f2f_app SET statement_timeout`), not per connection. |
 | FR-DB-03 | MUST | TLS is required for database connections in production (`PGSSLMODE=require` or stricter). |
 | FR-DB-04 | SHOULD | A scheduled job deletes expired/revoked refresh tokens and `auth_events` older than 90 days. |
 
@@ -514,7 +516,7 @@ CREATE INDEX ON app.rooms (owner_user_id, created_at DESC);
 
 ### 7.1 Framework
 
-**Jest** is the chosen runner, with **Supertest** for HTTP-level tests. Rationale: it covers unit, integration and API testing in one tool with built-in mocking, coverage (V8), watch mode, and per-project configuration for a multi-service repo — no extra assertion/coverage/mocking dependencies. (`node:test` was considered — lighter but weaker for coverage thresholds and module mocking; Vitest offers no advantage here since the project has no bundler.) Supporting tools: `nock` for outbound HTTP stubbing (Google token/JWKS endpoints), `pg` against a real local test database, a real local Redis logical db, and — optionally, Phase 3 — **Playwright** for one browser end-to-end path.
+**Jest** is the chosen runner, with **Supertest** for HTTP-level tests. Rationale: it covers unit, integration and API testing in one tool with built-in mocking, coverage (V8), watch mode, and per-project configuration for a multi-service repo — no extra assertion/coverage/mocking dependencies. (`node:test` was considered — lighter but weaker for coverage thresholds and module mocking; Vitest offers no advantage here since the project has no bundler.) Supporting tools: `nock` for outbound HTTP stubbing (Google token/JWKS endpoints), the Prisma client against a real local test database, a real local Redis logical db, and — optionally, Phase 3 — **Playwright** for one browser end-to-end path.
 
 | ID | Priority | Requirement |
 |---|---|---|
@@ -554,8 +556,10 @@ test:security      jest --selectProjects security --runInBand
 test:coverage      jest --coverage
 test:e2e           playwright test
 test:docker        docker compose -p f2f-test -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from tests
-db:migrate         node-pg-migrate up
-db:migrate:test    NODE_ENV=test node-pg-migrate up
+db:generate        prisma generate
+db:migrate         prisma migrate deploy
+db:migrate:dev     prisma migrate dev
+db:migrate:test    node scripts/migrate-test.js   (deploys to TEST_DATABASE_URL)
 ```
 
 ---
@@ -568,8 +572,9 @@ db:migrate:test    NODE_ENV=test node-pg-migrate up
 |---|---|---|---|
 | `NODE_ENV` | all | `development` | `production` enables strict cookie/TLS checks |
 | `AUTH_PORT` | auth | `3003` | |
-| `DATABASE_URL` | auth | `postgres://f2f_app:…@localhost:5432/face2face` | app role, no DDL |
-| `DATABASE_URL_MIGRATIONS` | migrations | owner role | used only by the migration job |
+| `DATABASE_URL` | auth | `postgres://f2f_app:…@localhost:5432/face2face?schema=app&connection_limit=10&pool_timeout=10&connect_timeout=5` | app role, no DDL; `url` in schema.prisma; pool settings ride on the query string |
+| `DATABASE_URL_MIGRATIONS` | migrations | owner role, same database | `directUrl` in schema.prisma; used only by the Prisma Migrate CLI |
+| `TEST_DATABASE_URL` / `TEST_DATABASE_URL_MIGRATIONS` | tests | the `face2face_test` equivalents | selected automatically when `NODE_ENV=test` |
 | `PGSSLMODE` | auth | `require` in prod | |
 | `REDIS_URL` | auth, http, ws | `redis://:pw@localhost:6379/0` | |
 | `REDIS_TEST_DB` | tests | `15` | |
@@ -645,7 +650,7 @@ The work is complete when all of the following hold:
 
 | Phase | Contents | Exit criterion |
 |---|---|---|
-| **P0 — Foundations** | Config schema, logger, shared Redis/PG clients, Jest projects, migrations tooling, `.env.example`, CI skeleton | `npm test` green with one trivial test per project |
+| **P0 — Foundations** | Config schema, logger, shared Redis/Prisma clients, Jest projects, Prisma Migrate setup, `.env.example`, CI skeleton | `npm test` green with one trivial test per project |
 | **P1 — Local auth** | Schema, Argon2, signup/login/refresh/logout, cookies + CSRF, JWKS, verification middleware in `httpServer`, login/signup pages, `POST /api/room` gating | Acceptance items 1–3 for the password path |
 | **P2 — Validation & hardening** | Zod schemas everywhere, error envelope, security headers/CSP, XSS fix in chat, CSPRNG room codes, `roomManager` service auth, ws tickets, frame validation | Security project green |
 | **P3 — Rate limiting** | Lua sliding-window limiter, four scopes, limits table, headers, fail-open/closed policy, Argon2 semaphore, adaptive defensive mode | Rate-limit test suite green, load test clean |
