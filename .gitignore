@@ -8,3 +8,6 @@ notes.txt
 !.env.example
 
 coverage/
+
+# redis snapshot, written here when redis-server is started from the repo root
+dump.rdb
