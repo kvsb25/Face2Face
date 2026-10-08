@@ -5,6 +5,11 @@ const roomId = urlParts[urlParts.length - 1];
 let localStream = null;
 let receivedBuffers = [];
 let fileSend = false;
+// ICE candidates that arrived before the remote description was applied.
+// ws.onmessage is async, so a candidate's handler can run while the offer or
+// answer handler is still awaiting setRemoteDescription — and addIceCandidate
+// rejects when there is no remote description yet.
+let pendingCandidates = [];
 
 async function setupMediaAndConnection() {
   try {
@@ -22,6 +27,21 @@ async function setupMediaAndConnection() {
     }
   } catch (err) {
     console.error('Error setting up media:', err);
+  }
+}
+
+async function applyRemoteDescription(description) {
+  await pc.setRemoteDescription(new RTCSessionDescription(description));
+
+  const queued = pendingCandidates;
+  pendingCandidates = [];
+  for (const candidate of queued) {
+    // one bad candidate must not drop the rest of the queue
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.error('Error adding queued ICE candidate:', err);
+    }
   }
 }
 
@@ -202,7 +222,7 @@ ws.onmessage = async (message) => {
           initDataChannel(dataChannel);
         };
 
-        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        await applyRemoteDescription(data.offer);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: "answer", answer: pc.localDescription }));
@@ -210,11 +230,15 @@ ws.onmessage = async (message) => {
 
       case "answer":
         console.log("Received answer");
-        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        await applyRemoteDescription(data.answer);
         break;
 
       case "ice-candidate":
         console.log("Received ICE candidate");
+        if (!pc.remoteDescription) {
+          pendingCandidates.push(data.candidate);
+          break;
+        }
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         break;
 
